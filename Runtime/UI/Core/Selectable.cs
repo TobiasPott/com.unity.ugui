@@ -747,7 +747,7 @@ namespace UnityEngine.UI
 
                 // DOC-HINT :::::: multi event system support
                 // check if the current item in the list belongs to the same event system as the selectable
-                if(!this.CompareEventSystemID(sel))
+                if (!this.CompareEventSystemID(sel))
                     // continue with the next for-loop iteration
                     continue;
                     
