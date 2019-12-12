@@ -134,6 +134,8 @@ namespace UnityEngine.EventSystems
         /// <returns>true if the UIBehaviour's EventSystemID matches the event data's EventSystemID, false otherwise</returns>
         protected virtual bool CompareEventSystemID(BaseEventData eventData)
         {
+            if (eventData == null)
+                return false;
             return this.EventSystemID == eventData.EventSystemID;
         }
 
@@ -145,6 +147,8 @@ namespace UnityEngine.EventSystems
         /// <returns>true if the UIBehaviour's EventSystemID matches the other UIBehaviour's EventSystemID, false otherwise</returns>
         protected virtual bool CompareEventSystemID(UIBehaviour other)
         {
+            if (other == null)
+                return false;
             return this.EventSystemID == other.EventSystemID;
         }
 
