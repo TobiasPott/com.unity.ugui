@@ -7,7 +7,6 @@ using UnityEngine.UI;
 
 public class InputModuleTests
 {
-    Camera m_Camera;
     EventSystem m_EventSystem;
     FakeBaseInput m_FakeBaseInput;
     StandaloneInputModule m_StandaloneInputModule;
@@ -19,29 +18,25 @@ public class InputModuleTests
     {
         // Camera | Canvas (Image) | Event System
 
-        m_Camera = new GameObject("Camera").AddComponent<Camera>();
-        m_Camera.transform.LookAt(Vector3.forward);
-
         m_Canvas = new GameObject("Canvas").AddComponent<Canvas>();
-        m_Canvas.renderMode = RenderMode.ScreenSpaceCamera;
-        m_Canvas.worldCamera = m_Camera;
+        m_Canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         m_Canvas.gameObject.AddComponent<GraphicRaycaster>();
 
         m_Image = new GameObject("Image").AddComponent<Image>();
         m_Image.gameObject.transform.SetParent(m_Canvas.transform);
         RectTransform imageRectTransform = m_Image.GetComponent<RectTransform>();
-        imageRectTransform.localScale = new Vector3(500f, 500f, 500f);
+        imageRectTransform.sizeDelta = new Vector2(400f, 400f);
         imageRectTransform.localPosition = Vector3.zero;
 
         GameObject go = new GameObject("Event System");
+        m_EventSystem = go.AddComponent<EventSystem>();
+        m_EventSystem.pixelDragThreshold = 1;
+
         m_StandaloneInputModule = go.AddComponent<StandaloneInputModule>();
         m_FakeBaseInput = go.AddComponent<FakeBaseInput>();
 
         // Override input with FakeBaseInput so we can send fake mouse/keyboards button presses and touches
         m_StandaloneInputModule.inputOverride = m_FakeBaseInput;
-
-        m_EventSystem = go.AddComponent<EventSystem>();
-        m_EventSystem.pixelDragThreshold = 1;
 
         Cursor.lockState = CursorLockMode.None;
     }
@@ -60,6 +55,9 @@ public class InputModuleTests
 
         // Setting required input.mousePresent to fake mouse presence
         m_FakeBaseInput.MousePresent = true;
+
+        var canvasRT = m_Canvas.gameObject.transform as RectTransform;
+        m_FakeBaseInput.MousePosition = new Vector2(Screen.width / 2, Screen.height / 2);
 
         yield return null;
 
@@ -86,12 +84,73 @@ public class InputModuleTests
         Assert.IsTrue(callbackCheck.onBeginDragCalled, "OnBeginDrag not called");
         Assert.IsTrue(callbackCheck.onDragCalled, "OnDragCalled not called");
         Assert.IsTrue(callbackCheck.onEndDragCalled, "OnEndDragCalled not called");
+        Assert.IsTrue(callbackCheck.onDropCalled, "OnDrop not called");
+    }
+
+    [UnityTest]
+    public IEnumerator MouseOutsideMaskRectTransform_WhileInsidePaddedArea_PerformsClick()
+    {
+        var mask = new GameObject("Panel").AddComponent<RectMask2D>();
+        mask.gameObject.transform.SetParent(m_Canvas.transform);
+        RectTransform panelRectTransform = mask.GetComponent<RectTransform>();
+        panelRectTransform.sizeDelta = new Vector2(100, 100f);
+        panelRectTransform.localPosition = Vector3.zero;
+
+        m_Image.gameObject.transform.SetParent(mask.transform, true);
+        mask.padding = new Vector4(-30, -30, -30, -30);
+
+
+        PointerClickCallbackCheck callbackCheck = m_Image.gameObject.AddComponent<PointerClickCallbackCheck>();
+
+        var canvasRT = m_Canvas.gameObject.transform as RectTransform;
+        var screenMiddle = new Vector2(Screen.width / 2, Screen.height / 2);
+        m_FakeBaseInput.MousePresent = true;
+        m_FakeBaseInput.MousePosition = screenMiddle;
+
+        yield return null;
+        // Click the center of the screen should hit the middle of the image.
+        m_FakeBaseInput.MouseButtonDown[0] = true;
+        yield return null;
+        m_FakeBaseInput.MouseButtonDown[0] = false;
+        yield return null;
+        m_FakeBaseInput.MouseButtonUp[0] = true;
+        yield return null;
+        m_FakeBaseInput.MouseButtonUp[0] = false;
+        yield return null;
+        Assert.IsTrue(callbackCheck.pointerDown);
+
+        //Reset the callbackcheck and click outside the mask but still in the image.
+        callbackCheck.pointerDown = false;
+        m_FakeBaseInput.MousePosition = new Vector2(screenMiddle.x - 60, screenMiddle.y);
+        yield return null;
+        m_FakeBaseInput.MouseButtonDown[0] = true;
+        yield return null;
+        m_FakeBaseInput.MouseButtonDown[0] = false;
+        yield return null;
+        m_FakeBaseInput.MouseButtonUp[0] = true;
+        yield return null;
+        m_FakeBaseInput.MouseButtonUp[0] = false;
+        yield return null;
+        Assert.IsTrue(callbackCheck.pointerDown);
+
+        //Reset the callbackcheck and click outside the mask and outside in the image.
+        callbackCheck.pointerDown = false;
+        m_FakeBaseInput.MousePosition = new Vector2(screenMiddle.x - 100, screenMiddle.y);
+        yield return null;
+        m_FakeBaseInput.MouseButtonDown[0] = true;
+        yield return null;
+        m_FakeBaseInput.MouseButtonDown[0] = false;
+        yield return null;
+        m_FakeBaseInput.MouseButtonUp[0] = true;
+        yield return null;
+        m_FakeBaseInput.MouseButtonUp[0] = false;
+        yield return null;
+        Assert.IsFalse(callbackCheck.pointerDown);
     }
 
     [TearDown]
     public void TearDown()
     {
-        GameObject.DestroyImmediate(m_Camera.gameObject);
         GameObject.DestroyImmediate(m_EventSystem.gameObject);
         GameObject.DestroyImmediate(m_Canvas.gameObject);
     }

@@ -13,6 +13,7 @@ public class GraphicRaycasterTests
     EventSystem m_EventSystem;
     Canvas m_Canvas;
     RectTransform m_CanvasRectTrans;
+    Text m_TextComponent;
 
     [SetUp]
     public void TestSetup()
@@ -31,7 +32,9 @@ public class GraphicRaycasterTests
         m_CanvasRectTrans = m_Canvas.GetComponent<RectTransform>();
         m_CanvasRectTrans.sizeDelta = new Vector2(100, 100);
 
-        var textRectTrans = new GameObject("Text").AddComponent<Text>().rectTransform;
+        var textGO = new GameObject("Text");
+        m_TextComponent = textGO.AddComponent<Text>();
+        var textRectTrans = m_TextComponent.rectTransform;
         textRectTrans.SetParent(m_Canvas.transform);
         textRectTrans.anchorMin = Vector2.zero;
         textRectTrans.anchorMax = Vector2.one;
@@ -76,6 +79,47 @@ public class GraphicRaycasterTests
         // it does not reproduce for me localy, so we just tweak the comparison threshold
         Assert.That(new Vector3(0, 0, 11), Is.EqualTo(results[0].worldPosition).Using(new Vector3EqualityComparer(0.01f)));
         Assert.That(new Vector3(0, 0, -1), Is.EqualTo(results[0].worldNormal).Using(new Vector3EqualityComparer(0.001f)));
+    }
+
+    [UnityTest]
+    public IEnumerator GraphicRaycasterUsesGraphicPadding()
+    {
+        m_CanvasRectTrans.anchoredPosition3D = new Vector3(0, 0, 11);
+        m_TextComponent.raycastPadding = new Vector4(-50, -50, -50, -50);
+        m_Camera.farClipPlane = 12;
+        yield return null;
+
+        var results = new List<RaycastResult>();
+        var pointerEvent = new PointerEventData(m_EventSystem)
+        {
+            position = new Vector2((Screen.width / 2f) - 60, Screen.height / 2f)
+        };
+
+        m_EventSystem.RaycastAll(pointerEvent, results);
+
+        Assert.IsNotEmpty(results, "Expected at least 1 result from a raycast outside the graphics RectTransform whose padding would make the click hit.");
+    }
+
+    [UnityTest]
+    public IEnumerator GraphicOnTheSamePlaneAsTheCameraCanBeTargetedForEvents()
+    {
+        m_Canvas.renderMode = RenderMode.ScreenSpaceCamera;
+        m_Canvas.planeDistance = 0;
+        m_Camera.orthographic = true;
+        m_Camera.orthographicSize = 1;
+        m_Camera.nearClipPlane = 0;
+        m_Camera.farClipPlane = 12;
+        yield return null;
+
+        var results = new List<RaycastResult>();
+        var pointerEvent = new PointerEventData(m_EventSystem)
+        {
+            position = new Vector2((Screen.width / 2f), Screen.height / 2f)
+        };
+
+        m_EventSystem.RaycastAll(pointerEvent, results);
+
+        Assert.IsNotEmpty(results, "Expected at least 1 result from a raycast ");
     }
 
     [TearDown]
