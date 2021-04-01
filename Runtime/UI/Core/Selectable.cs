@@ -22,6 +22,7 @@ namespace UnityEngine.UI
     {
         protected static Selectable[] s_Selectables = new Selectable[10];
         protected static int s_SelectableCount = 0;
+        private bool m_EnableCalled = false;
 
         /// <summary>
         /// Copy of the array of all the selectable objects currently active in the scene.
@@ -481,6 +482,10 @@ namespace UnityEngine.UI
         // Select on enable and add to the list.
         protected override void OnEnable()
         {
+            //Check to avoid multiple OnEnable() calls for each selectable
+            if (m_EnableCalled)
+                return;
+
             base.OnEnable();
 
             if (s_SelectableCount == s_Selectables.Length)
@@ -494,6 +499,8 @@ namespace UnityEngine.UI
             s_SelectableCount++;
             isPointerDown = false;
             DoStateTransition(currentSelectionState, true);
+
+            m_EnableCalled = true;
         }
 
         protected override void OnTransformParentChanged()
@@ -517,6 +524,10 @@ namespace UnityEngine.UI
         // Remove from the list.
         protected override void OnDisable()
         {
+            //Check to avoid multiple OnDisable() calls for each selectable
+            if (!m_EnableCalled)
+                return;
+
             s_SelectableCount--;
 
             // Update the last elements index to be this index
@@ -530,6 +541,8 @@ namespace UnityEngine.UI
 
             InstantClearState();
             base.OnDisable();
+
+            m_EnableCalled = false;
         }
 
 #if UNITY_EDITOR
@@ -736,7 +749,13 @@ namespace UnityEngine.UI
             Vector3 localDir = Quaternion.Inverse(transform.rotation) * dir;
             Vector3 pos = transform.TransformPoint(GetPointOnRectEdge(transform as RectTransform, localDir));
             float maxScore = Mathf.NegativeInfinity;
+            float maxFurthestScore = Mathf.NegativeInfinity;
+            float score = 0;
+
+            bool wantsWrapAround = navigation.wrapAround && (m_Navigation.mode == Navigation.Mode.Vertical || m_Navigation.mode == Navigation.Mode.Horizontal);
+
             Selectable bestPick = null;
+            Selectable bestFurthestPick = null;
 
             for (int i = 0; i < s_SelectableCount; ++i)
             {
@@ -769,6 +788,20 @@ namespace UnityEngine.UI
                 // Value that is the distance out along the direction.
                 float dot = Vector3.Dot(dir, myVector);
 
+                // If element is in wrong direction and we have wrapAround enabled check and cache it if furthest away.
+                if (wantsWrapAround && dot < 0)
+                {
+                    score = -dot * myVector.sqrMagnitude;
+
+                    if (score > maxFurthestScore)
+                    {
+                        maxFurthestScore = score;
+                        bestFurthestPick = sel;
+                    }
+
+                    continue;
+                }
+
                 // Skip elements that are in the wrong direction or which have zero distance.
                 // This also ensures that the scoring formula below will not have a division by zero error.
                 if (dot <= 0)
@@ -788,7 +821,7 @@ namespace UnityEngine.UI
                 // that touches pos and whose center is located along dir. A way to visualize the resulting functionality is this:
                 // From the position pos, blow up a circular balloon so it grows in the direction of dir.
                 // The first Selectable whose center the circular balloon touches is the one that's chosen.
-                float score = dot / myVector.sqrMagnitude;
+                score = dot / myVector.sqrMagnitude;
 
                 if (score > maxScore)
                 {
@@ -796,6 +829,9 @@ namespace UnityEngine.UI
                     bestPick = sel;
                 }
             }
+
+            if (wantsWrapAround && null == bestPick) return bestFurthestPick;
+
             return bestPick;
         }
 
@@ -1092,7 +1128,6 @@ namespace UnityEngine.UI
         {
             if (!IsActive() || !IsInteractable())
                 return false;
-                
             return isPointerInside && !isPointerDown && !hasSelection;
         }
 

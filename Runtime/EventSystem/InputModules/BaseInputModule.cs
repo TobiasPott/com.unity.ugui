@@ -116,7 +116,8 @@ namespace UnityEngine.EventSystems
         /// </summary>
         protected static RaycastResult FindFirstRaycast(List<RaycastResult> candidates)
         {
-            for (var i = 0; i < candidates.Count; ++i)
+            var candidatesCount = candidates.Count;
+            for (var i = 0; i < candidatesCount; ++i)
             {
                 if (candidates[i].gameObject == null)
                     continue;
@@ -150,16 +151,10 @@ namespace UnityEngine.EventSystems
 
             if (Mathf.Abs(x) > Mathf.Abs(y))
             {
-                if (x > 0)
-                    return MoveDirection.Right;
-                return MoveDirection.Left;
+                return x > 0 ? MoveDirection.Right : MoveDirection.Left;
             }
-            else
-            {
-                if (y > 0)
-                    return MoveDirection.Up;
-                return MoveDirection.Down;
-            }
+
+            return y > 0 ? MoveDirection.Up : MoveDirection.Down;
         }
 
         /// <summary>
@@ -203,7 +198,8 @@ namespace UnityEngine.EventSystems
             // then exit
             if (newEnterTarget == null || currentPointerData.pointerEnter == null)
             {
-                for (var i = 0; i < currentPointerData.hovered.Count; ++i)
+                var hoveredCount = currentPointerData.hovered.Count;
+                for (var i = 0; i < hoveredCount; ++i)
                     ExecuteEvents.Execute(currentPointerData.hovered[i], currentPointerData, ExecuteEvents.pointerExitHandler);
 
                 currentPointerData.hovered.Clear();
@@ -320,6 +316,10 @@ namespace UnityEngine.EventSystems
         public virtual void UpdateModule()
         {}
 
+        /// <summary>
+        /// Check to see if the module is supported. Override this if you have a platform specific module (eg. TouchInputModule that you do not want to activate on standalone.)
+        /// </summary>
+        /// <returns>Is the module supported.</returns>
         public virtual bool IsModuleSupported()
         {
             return true;
