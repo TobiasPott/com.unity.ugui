@@ -40,10 +40,18 @@ namespace UnityEngine.UI
     {
         private List<Vector3> m_Positions;
         private List<Color32> m_Colors;
+#if UNITY_2020_3_OR_NEWER
         private List<Vector4> m_Uv0S;
         private List<Vector4> m_Uv1S;
         private List<Vector4> m_Uv2S;
         private List<Vector4> m_Uv3S;
+#else
+        private List<Vector2> m_Uv0S;
+        private List<Vector2> m_Uv1S;
+        private List<Vector2> m_Uv2S;
+        private List<Vector2> m_Uv3S;
+#endif
+
         private List<Vector3> m_Normals;
         private List<Vector4> m_Tangents;
         private List<int> m_Indices;
@@ -62,6 +70,7 @@ namespace UnityEngine.UI
 
             m_Positions.AddRange(m.vertices);
             m_Colors.AddRange(m.colors32);
+#if UNITY_2020_3_OR_NEWER
             List<Vector4> tempUVList = new List<Vector4>();
             m.GetUVs(0, tempUVList);
             m_Uv0S.AddRange(tempUVList);
@@ -71,6 +80,12 @@ namespace UnityEngine.UI
             m_Uv2S.AddRange(tempUVList);
             m.GetUVs(3, tempUVList);
             m_Uv3S.AddRange(tempUVList);
+#else
+            m_Uv0S.AddRange(m.uv);
+            m_Uv1S.AddRange(m.uv2);
+            m_Uv2S.AddRange(m.uv3);
+            m_Uv3S.AddRange(m.uv4);
+#endif
             m_Normals.AddRange(m.normals);
             m_Tangents.AddRange(m.tangents);
             m_Indices.AddRange(m.GetIndices(0));
@@ -82,10 +97,17 @@ namespace UnityEngine.UI
             {
                 m_Positions = ListPool<Vector3>.Get();
                 m_Colors = ListPool<Color32>.Get();
+#if UNITY_2020_3_OR_NEWER
                 m_Uv0S = ListPool<Vector4>.Get();
                 m_Uv1S = ListPool<Vector4>.Get();
                 m_Uv2S = ListPool<Vector4>.Get();
                 m_Uv3S = ListPool<Vector4>.Get();
+#else
+                m_Uv0S = ListPool<Vector2>.Get();
+                m_Uv1S = ListPool<Vector2>.Get();
+                m_Uv2S = ListPool<Vector2>.Get();
+                m_Uv3S = ListPool<Vector2>.Get();
+#endif
                 m_Normals = ListPool<Vector3>.Get();
                 m_Tangents = ListPool<Vector4>.Get();
                 m_Indices = ListPool<int>.Get();
@@ -102,14 +124,20 @@ namespace UnityEngine.UI
             {
                 ListPool<Vector3>.Release(m_Positions);
                 ListPool<Color32>.Release(m_Colors);
+#if UNITY_2020_3_OR_NEWER
                 ListPool<Vector4>.Release(m_Uv0S);
                 ListPool<Vector4>.Release(m_Uv1S);
                 ListPool<Vector4>.Release(m_Uv2S);
                 ListPool<Vector4>.Release(m_Uv3S);
+#else
+                ListPool<Vector2>.Release(m_Uv0S);
+                ListPool<Vector2>.Release(m_Uv1S);
+                ListPool<Vector2>.Release(m_Uv2S);
+                ListPool<Vector2>.Release(m_Uv3S);
+#endif
                 ListPool<Vector3>.Release(m_Normals);
                 ListPool<Vector4>.Release(m_Tangents);
                 ListPool<int>.Release(m_Indices);
-
                 m_Positions = null;
                 m_Colors = null;
                 m_Uv0S = null;

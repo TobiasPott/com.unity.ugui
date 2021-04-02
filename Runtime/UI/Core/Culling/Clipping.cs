@@ -23,7 +23,12 @@ namespace UnityEngine.UI
             }
 
             Rect current = rectMaskParents[0].canvasRect;
+
+#if UNITY_2020_3_OR_NEWER
             Vector4 offset = rectMaskParents[0].padding;
+#else
+            Vector4 offset = Vector4.zero;
+#endif
             float xMin = current.xMin + offset.x;
             float xMax = current.xMax - offset.z;
             float yMin = current.yMin + offset.y;
@@ -33,7 +38,9 @@ namespace UnityEngine.UI
             for (var i = 1; i < rectMaskParentsCount; ++i)
             {
                 current = rectMaskParents[i].canvasRect;
+#if UNITY_2020_3_OR_NEWER
                 offset = rectMaskParents[i].padding;
+#endif
                 if (xMin < current.xMin + offset.x)
                     xMin = current.xMin + offset.x;
                 if (yMin < current.yMin + offset.y)

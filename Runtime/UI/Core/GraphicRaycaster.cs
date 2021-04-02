@@ -84,12 +84,12 @@ namespace UnityEngine.UI
         /// <summary>
         /// Whether Graphics facing away from the raycaster are checked for raycasts.
         /// </summary>
-        public bool ignoreReversedGraphics { get {return m_IgnoreReversedGraphics; } set { m_IgnoreReversedGraphics = value; } }
+        public bool ignoreReversedGraphics { get { return m_IgnoreReversedGraphics; } set { m_IgnoreReversedGraphics = value; } }
 
         /// <summary>
         /// The type of objects that are checked to determine if they block graphic raycasts.
         /// </summary>
-        public BlockingObjects blockingObjects { get {return m_BlockingObjects; } set { m_BlockingObjects = value; } }
+        public BlockingObjects blockingObjects { get { return m_BlockingObjects; } set { m_BlockingObjects = value; } }
 
         [SerializeField]
         protected LayerMask m_BlockingMask = kNoEventMaskSet;
@@ -102,7 +102,7 @@ namespace UnityEngine.UI
         private Canvas m_Canvas;
 
         protected GraphicRaycaster()
-        {}
+        { }
 
         private Canvas canvas
         {
@@ -329,7 +329,11 @@ namespace UnityEngine.UI
                 if (!graphic.raycastTarget || graphic.canvasRenderer.cull || graphic.depth == -1)
                     continue;
 
+#if UNITY_2020_3_OR_NEWER
                 if (!RectTransformUtility.RectangleContainsScreenPoint(graphic.rectTransform, pointerPosition, eventCamera, graphic.raycastPadding))
+#else
+                if (!RectTransformUtility.RectangleContainsScreenPoint(graphic.rectTransform, pointerPosition, eventCamera))
+#endif
                     continue;
 
                 if (eventCamera != null && eventCamera.WorldToScreenPoint(graphic.rectTransform.position).z > eventCamera.farClipPlane)

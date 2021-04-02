@@ -162,7 +162,9 @@ namespace UnityEngine.UI
 
         public virtual void SetClipSoftness(Vector2 clipSoftness)
         {
+#if UNITY_2020_3_OR_NEWER
             canvasRenderer.clippingSoftness = clipSoftness;
+#endif
         }
 
         protected override void OnEnable()

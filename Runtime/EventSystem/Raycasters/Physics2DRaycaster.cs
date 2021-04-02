@@ -79,10 +79,12 @@ namespace UnityEngine.EventSystems
                             r2d = rendererResult;
                         }
 #endif
+#if UNITY_2020_3_OR_NEWER
                         if (rendererResult is SpriteShapeRenderer)
                         {
                             r2d = rendererResult;
                         }
+#endif
                     }
 
                     var result = new RaycastResult
@@ -102,6 +104,6 @@ namespace UnityEngine.EventSystems
                 }
             }
 #endif
-        }
+                    }
     }
 }
