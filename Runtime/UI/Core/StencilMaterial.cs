@@ -78,7 +78,8 @@ namespace UnityEngine.UI
                 return baseMat;
             }
 
-            for (int i = 0; i < m_List.Count; ++i)
+            var listCount = m_List.Count;
+            for (int i = 0; i < listCount; ++i)
             {
                 MatEntry ent = m_List[i];
 
@@ -135,7 +136,8 @@ namespace UnityEngine.UI
             if (customMat == null)
                 return;
 
-            for (int i = 0; i < m_List.Count; ++i)
+            var listCount = m_List.Count;
+            for (int i = 0; i < listCount; ++i)
             {
                 MatEntry ent = m_List[i];
 
@@ -154,7 +156,8 @@ namespace UnityEngine.UI
 
         public static void ClearAll()
         {
-            for (int i = 0; i < m_List.Count; ++i)
+            var listCount = m_List.Count;
+            for (int i = 0; i < listCount; ++i)
             {
                 MatEntry ent = m_List[i];
 

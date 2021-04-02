@@ -24,8 +24,10 @@ namespace UnityEngine.UI
         // m_IncludeForMasking is whether we actually consider this graphic for masking or not - this is an implementation detail.
         // m_IncludeForMasking should only be true if m_Maskable is true AND a parent of the graphic has an IMask component.
         // Things would still work correctly if m_IncludeForMasking was always true when m_Maskable is, but performance would suffer.
-        [NonSerialized]
+        [SerializeField]
         private bool m_Maskable = true;
+
+        private bool m_IsMaskingGraphic = false;
 
         [NonSerialized]
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
@@ -67,6 +69,25 @@ namespace UnityEngine.UI
             }
         }
 
+
+        /// <summary>
+        /// Is this graphic the graphic on the same object as a Mask that is enabled.
+        /// </summary>
+        /// <remarks>
+        /// If toggled ensure to call MaskUtilities.NotifyStencilStateChanged(this); manually as it changes how stenciles are calculated for this image.
+        /// </remarks>
+        public bool isMaskingGraphic
+        {
+            get { return m_IsMaskingGraphic; }
+            set
+            {
+                if (value == m_IsMaskingGraphic)
+                    return;
+
+                m_IsMaskingGraphic = value;
+            }
+        }
+
         [NonSerialized]
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         [Obsolete("Not used anymore", true)]
@@ -84,16 +105,21 @@ namespace UnityEngine.UI
 
             if (m_ShouldRecalculateStencil)
             {
-                var rootCanvas = MaskUtilities.FindRootSortOverrideCanvas(transform);
-                m_StencilValue = maskable ? MaskUtilities.GetStencilDepth(transform, rootCanvas) : 0;
+                if (maskable)
+                {
+                    var rootCanvas = MaskUtilities.FindRootSortOverrideCanvas(transform);
+                    m_StencilValue = MaskUtilities.GetStencilDepth(transform, rootCanvas);
+                }
+                else
+                    m_StencilValue = 0;
+
                 m_ShouldRecalculateStencil = false;
             }
 
             // if we have a enabled Mask component then it will
-            // generate the mask material. This is an optimisation
+            // generate the mask material. This is an optimization
             // it adds some coupling between components though :(
-            Mask maskComponent = GetComponent<Mask>();
-            if (m_StencilValue > 0 && (maskComponent == null || !maskComponent.IsActive()))
+            if (m_StencilValue > 0 && !isMaskingGraphic)
             {
                 var maskMat = StencilMaterial.Add(toUse, (1 << m_StencilValue) - 1, StencilOp.Keep, CompareFunction.Equal, ColorWriteMask.All, (1 << m_StencilValue) - 1, 0);
                 StencilMaterial.Remove(m_MaskMaterial);
@@ -134,6 +160,13 @@ namespace UnityEngine.UI
                 canvasRenderer.DisableRectClipping();
         }
 
+        public virtual void SetClipSoftness(Vector2 clipSoftness)
+        {
+#if UNITY_2020_3_OR_NEWER
+            canvasRenderer.clippingSoftness = clipSoftness;
+#endif
+        }
+
         protected override void OnEnable()
         {
             base.OnEnable();
@@ -141,7 +174,7 @@ namespace UnityEngine.UI
             UpdateClipParent();
             SetMaterialDirty();
 
-            if (GetComponent<Mask>() != null)
+            if (isMaskingGraphic)
             {
                 MaskUtilities.NotifyStencilStateChanged(this);
             }
@@ -156,7 +189,7 @@ namespace UnityEngine.UI
             StencilMaterial.Remove(m_MaskMaterial);
             m_MaskMaterial = null;
 
-            if (GetComponent<Mask>() != null)
+            if (isMaskingGraphic)
             {
                 MaskUtilities.NotifyStencilStateChanged(this);
             }

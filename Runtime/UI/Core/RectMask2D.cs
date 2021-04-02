@@ -45,6 +45,45 @@ namespace UnityEngine.UI
         [NonSerialized]
         private bool m_ForceClip;
 
+#if UNITY_2020_3_OR_NEWER
+        [SerializeField]
+        private Vector4 m_Padding = new Vector4();
+
+        /// <summary>
+        /// Padding to be applied to the masking
+        /// X = Left
+        /// Y = Bottom
+        /// Z = Right
+        /// W = Top
+        /// </summary>
+        public Vector4 padding
+        {
+            get { return m_Padding; }
+            set
+            {
+                m_Padding = value;
+                MaskUtilities.Notify2DMaskStateChanged(this);
+            }
+        }
+
+        [SerializeField]
+        private Vector2Int m_Softness;
+
+        /// <summary>
+        /// The softness to apply to the horizontal and vertical axis.
+        /// </summary>
+        public Vector2Int softness
+        {
+            get { return m_Softness;  }
+            set
+            {
+                m_Softness.x = Mathf.Max(0, value.x);
+                m_Softness.y = Mathf.Max(0, value.y);
+                MaskUtilities.Notify2DMaskStateChanged(this);
+            }
+        }
+#endif
+
         /// <remarks>
         /// Returns a non-destroyed instance or a null reference.
         /// </remarks>
@@ -88,7 +127,7 @@ namespace UnityEngine.UI
         }
 
         protected RectMask2D()
-        {}
+        { }
 
         protected override void OnEnable()
         {
@@ -118,6 +157,11 @@ namespace UnityEngine.UI
             base.OnValidate();
             m_ShouldRecalculateClipRects = true;
 
+#if UNITY_2020_3_OR_NEWER
+            // Dont allow negative softness.
+            m_Softness.x = Mathf.Max(0, m_Softness.x);
+            m_Softness.y = Mathf.Max(0, m_Softness.y);
+#endif
             if (!IsActive())
                 return;
 
@@ -131,7 +175,11 @@ namespace UnityEngine.UI
             if (!isActiveAndEnabled)
                 return true;
 
+#if UNITY_2020_3_OR_NEWER
+            return RectTransformUtility.RectangleContainsScreenPoint(rectTransform, sp, eventCamera, m_Padding);
+#else
             return RectTransformUtility.RectangleContainsScreenPoint(rectTransform, sp, eventCamera);
+#endif
         }
 
         private Vector3[] m_Corners = new Vector3[4];
@@ -224,14 +272,43 @@ namespace UnityEngine.UI
             {
                 foreach (MaskableGraphic maskableTarget in m_MaskableTargets)
                 {
+#if UNITY_2020_3_OR_NEWER
+                    //Case 1170399 - hasMoved is not a valid check when animating on pivot of the object
+                    maskableTarget.Cull(clipRect, validRect);
+#else
                     if (maskableTarget.canvasRenderer.hasMoved)
                         maskableTarget.Cull(clipRect, validRect);
+#endif
                 }
             }
 
             m_LastClipRectCanvasSpace = clipRect;
             m_ForceClip = false;
+
+#if UNITY_2020_3_OR_NEWER
+            UpdateClipSoftness();
+#endif
         }
+
+#if UNITY_2020_3_OR_NEWER
+        public virtual void UpdateClipSoftness()
+        {
+            if (ReferenceEquals(Canvas, null))
+            {
+                return;
+            }
+
+            foreach (IClippable clipTarget in m_ClipTargets)
+            {
+                clipTarget.SetClipSoftness(m_Softness);
+            }
+
+            foreach (MaskableGraphic maskableTarget in m_MaskableTargets)
+            {
+                maskableTarget.SetClipSoftness(m_Softness);
+            }
+        }
+#endif
 
         /// <summary>
         /// Add a IClippable to be tracked by the mask.

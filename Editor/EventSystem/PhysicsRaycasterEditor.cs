@@ -12,7 +12,7 @@ namespace UnityEditor.EventSystems
         public override void OnInspectorGUI()
         {
             base.OnInspectorGUI();
-#if !PHYSICS_PACKAGE
+#if !PACKAGE_PHYSICS
             EditorGUILayout.HelpBox("Physics module is not present. This Raycaster will have no effect", MessageType.Warning);
 #endif
         }

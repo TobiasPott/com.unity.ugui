@@ -116,6 +116,37 @@ namespace UnityEngine.UI
             Press();
         }
 
+        /// <summary>
+        /// Call all registered ISubmitHandler.
+        /// </summary>
+        /// <param name="eventData">Associated data with the event. Typically by the event system.</param>
+        /// <remarks>
+        /// This detects when a Button has been selected via a "submit" key you specify (default is the return key).
+        ///
+        /// To change the submit key, either:
+        ///
+        /// 1. Go to Edit->Project Settings->Input.
+        ///
+        /// 2. Next, expand the Axes section and go to the Submit section if it exists.
+        ///
+        /// 3. If Submit doesn’t exist, add 1 number to the Size field. This creates a new section at the bottom. Expand the new section and change the Name field to “Submit”.
+        ///
+        /// 4. Change the Positive Button field to the key you want (e.g. space).
+        ///
+        ///
+        /// Or:
+        ///
+        /// 1. Go to your EventSystem in your Project
+        ///
+        /// 2. Go to the Inspector window and change the Submit Button field to one of the sections in the Input Manager (e.g. "Submit"), or create your own by naming it what you like, then following the next few steps.
+        ///
+        /// 3. Go to Edit->Project Settings->Input to get to the Input Manager.
+        ///
+        /// 4. Expand the Axes section in the Inspector window. Add 1 to the number in the Size field. This creates a new section at the bottom.
+        ///
+        /// 5. Expand the new section and name it the same as the name you inserted in the Submit Button field in the EventSystem. Set the Positive Button field to the key you want (e.g. space)
+        /// </remarks>
+
         public virtual void OnSubmit(BaseEventData eventData)
         {
             // DOC-HINT :::::: multi event system support

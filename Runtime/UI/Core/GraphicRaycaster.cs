@@ -84,20 +84,25 @@ namespace UnityEngine.UI
         /// <summary>
         /// Whether Graphics facing away from the raycaster are checked for raycasts.
         /// </summary>
-        public bool ignoreReversedGraphics { get {return m_IgnoreReversedGraphics; } set { m_IgnoreReversedGraphics = value; } }
+        public bool ignoreReversedGraphics { get { return m_IgnoreReversedGraphics; } set { m_IgnoreReversedGraphics = value; } }
 
         /// <summary>
         /// The type of objects that are checked to determine if they block graphic raycasts.
         /// </summary>
-        public BlockingObjects blockingObjects { get {return m_BlockingObjects; } set { m_BlockingObjects = value; } }
+        public BlockingObjects blockingObjects { get { return m_BlockingObjects; } set { m_BlockingObjects = value; } }
 
         [SerializeField]
         protected LayerMask m_BlockingMask = kNoEventMaskSet;
 
+        /// <summary>
+        /// The type of objects specified through LayerMask that are checked to determine if they block graphic raycasts.
+        /// </summary>
+        public LayerMask blockingMask { get { return m_BlockingMask; } set { m_BlockingMask = value; } }
+
         private Canvas m_Canvas;
 
         protected GraphicRaycaster()
-        {}
+        { }
 
         private Canvas canvas
         {
@@ -123,7 +128,7 @@ namespace UnityEngine.UI
             if (canvas == null)
                 return;
 
-            var canvasGraphics = GraphicRegistry.GetGraphicsForCanvas(canvas);
+            var canvasGraphics = GraphicRegistry.GetRaycastableGraphicsForCanvas(canvas);
             if (canvasGraphics == null || canvasGraphics.Count == 0)
                 return;
 
@@ -241,7 +246,8 @@ namespace UnityEngine.UI
                     else
                     {
                         // If we have a camera compare the direction against the cameras forward.
-                        appendGraphic = Vector3.Dot(go.transform.position - currentEventCamera.transform.position, go.transform.forward) > 0;
+                        var cameraForward = currentEventCamera.transform.rotation * Vector3.forward * currentEventCamera.nearClipPlane;
+                        appendGraphic = Vector3.Dot(go.transform.position - currentEventCamera.transform.position - cameraForward, go.transform.forward) >= 0;
                     }
                 }
 
@@ -297,10 +303,13 @@ namespace UnityEngine.UI
         {
             get
             {
-                if (canvas.renderMode == RenderMode.ScreenSpaceOverlay || (canvas.renderMode == RenderMode.ScreenSpaceCamera && canvas.worldCamera == null))
+                var canvas = this.canvas;
+                var renderMode = canvas.renderMode;
+                if (renderMode == RenderMode.ScreenSpaceOverlay
+                    || (renderMode == RenderMode.ScreenSpaceCamera && canvas.worldCamera == null))
                     return null;
 
-                return canvas.worldCamera != null ? canvas.worldCamera : Camera.main;
+                return canvas.worldCamera ?? Camera.main;
             }
         }
 
@@ -320,7 +329,11 @@ namespace UnityEngine.UI
                 if (!graphic.raycastTarget || graphic.canvasRenderer.cull || graphic.depth == -1)
                     continue;
 
+#if UNITY_2020_3_OR_NEWER
+                if (!RectTransformUtility.RectangleContainsScreenPoint(graphic.rectTransform, pointerPosition, eventCamera, graphic.raycastPadding))
+#else
                 if (!RectTransformUtility.RectangleContainsScreenPoint(graphic.rectTransform, pointerPosition, eventCamera))
+#endif
                     continue;
 
                 if (eventCamera != null && eventCamera.WorldToScreenPoint(graphic.rectTransform.position).z > eventCamera.farClipPlane)

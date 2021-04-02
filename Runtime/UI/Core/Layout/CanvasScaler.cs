@@ -230,6 +230,9 @@ namespace UnityEngine.UI
         [System.NonSerialized]
         private float m_PrevReferencePixelsPerUnit = 100;
 
+#if UNITY_2020_3_OR_NEWER
+        [SerializeField] protected bool m_PresetInfoIsWorld = false;
+#endif 
 
         protected CanvasScaler() {}
 
@@ -238,15 +241,27 @@ namespace UnityEngine.UI
             base.OnEnable();
             m_Canvas = GetComponent<Canvas>();
             Handle();
+#if UNITY_2020_3_OR_NEWER
+            Canvas.preWillRenderCanvases += Canvas_preWillRenderCanvases;
+#endif
+        }
+
+        private void Canvas_preWillRenderCanvases()
+        {
+            Handle();
         }
 
         protected override void OnDisable()
         {
             SetScaleFactor(1);
             SetReferencePixelsPerUnit(100);
+#if UNITY_2020_3_OR_NEWER
+            Canvas.preWillRenderCanvases -= Canvas_preWillRenderCanvases;
+#endif
             base.OnDisable();
         }
 
+#if !UNITY_2020_3_OR_NEWER
         /// <summary>
         /// Checks each frame whether the canvas needs to be rescaled.
         /// </summary>
@@ -254,6 +269,7 @@ namespace UnityEngine.UI
         {
             Handle();
         }
+#endif
 
         ///<summary>
         ///Method that handles calculations of canvas scaling.
@@ -300,7 +316,11 @@ namespace UnityEngine.UI
         /// </summary>
         protected virtual void HandleScaleWithScreenSize()
         {
+#if UNITY_2020_3_OR_NEWER
+            Vector2 screenSize = m_Canvas.renderingDisplaySize;
+#else
             Vector2 screenSize = new Vector2(Screen.width, Screen.height);
+#endif
 
             // Multiple display support only when not the main display. For display 0 the reported
             // resolution is always the desktops resolution since its part of the display API,
@@ -311,6 +331,7 @@ namespace UnityEngine.UI
                 Display disp = Display.displays[displayIndex];
                 screenSize = new Vector2(disp.renderingWidth, disp.renderingHeight);
             }
+
 
             float scaleFactor = 0;
             switch (m_ScreenMatchMode)

@@ -275,6 +275,9 @@ namespace UnityEngine.UI
         [SerializeField]
         private bool m_ReadOnly = false;
 
+        [SerializeField]
+        private bool m_ShouldActivateOnSelect = true;
+
         protected int m_CaretPosition = 0;
         protected int m_CaretSelectPosition = 0;
         private RectTransform caretRectTrans = null;
@@ -386,11 +389,19 @@ namespace UnityEngine.UI
             }
         }
 
-        bool shouldActivateOnSelect
+        /// <summary>
+        /// Should the inputfield be automatically activated upon selection.
+        /// </summary>
+
+        public virtual bool shouldActivateOnSelect
         {
+            set
+            {
+                m_ShouldActivateOnSelect = value;
+            }
             get
             {
-                return Application.platform != RuntimePlatform.tvOS;
+                return m_ShouldActivateOnSelect && Application.platform != RuntimePlatform.tvOS;
             }
         }
 
@@ -1367,7 +1378,9 @@ namespace UnityEngine.UI
             }
             else if (m_HideMobileInput && m_Keyboard.canSetSelection)
             {
-                m_Keyboard.selection = new RangeInt(caretPositionInternal, caretSelectPositionInternal - caretPositionInternal);
+                var selectionStart = Mathf.Min(caretSelectPositionInternal, caretPositionInternal);
+                var selectionLength = Mathf.Abs(caretSelectPositionInternal - caretPositionInternal);
+                m_Keyboard.selection = new RangeInt(selectionStart, selectionLength);
             }
             else if (m_Keyboard.canGetSelection && !m_HideMobileInput)
             {
@@ -1642,6 +1655,7 @@ namespace UnityEngine.UI
             bool shift = (currentEventModifiers & EventModifiers.Shift) != 0;
             bool alt = (currentEventModifiers & EventModifiers.Alt) != 0;
             bool ctrlOnly = ctrl && !alt && !shift;
+            bool shiftOnly = shift && !ctrl && !alt;
 
             switch (evt.keyCode)
             {
@@ -1719,6 +1733,26 @@ namespace UnityEngine.UI
                         Delete();
                         UpdateTouchKeyboardFromEditChanges();
                         SendOnValueChangedAndUpdateLabel();
+                        return EditState.Continue;
+                    }
+                    break;
+                }
+                case KeyCode.Insert:
+                {
+                    // Copy via Insert key
+                    if (ctrlOnly)
+                    {
+                        if (inputType != InputType.Password)
+                            clipboard = GetSelectedString();
+                        else
+                            clipboard = "";
+                        return EditState.Continue;
+                    }
+                    // Paste via insert key.
+                    else if (shiftOnly)
+                    {
+                        Append(clipboard);
+                        UpdateLabel();
                         return EditState.Continue;
                     }
                     break;
@@ -2225,10 +2259,25 @@ namespace UnityEngine.UI
 
             // If we have an input validator, validate the input first
             int insertionPoint = Math.Min(selectionFocusPosition, selectionAnchorPosition);
+
+            //Get the text based on selection for validation instead of whole text(case 1253193).
+            var validateText = text;
+            if (selectionFocusPosition != selectionAnchorPosition)
+            {
+                if (caretPositionInternal < caretSelectPositionInternal)
+                {
+                    validateText = text.Substring(0, caretPositionInternal) + text.Substring(caretSelectPositionInternal, text.Length - caretSelectPositionInternal);
+                }
+                else
+                {
+                    validateText = text.Substring(0, caretSelectPositionInternal) + text.Substring(caretPositionInternal, text.Length - caretPositionInternal);
+                }
+            }
+
             if (onValidateInput != null)
-                input = onValidateInput(text, insertionPoint, input);
+                input = onValidateInput(validateText, insertionPoint, input);
             else if (characterValidation != CharacterValidation.None)
-                input = Validate(text, insertionPoint, input);
+                input = Validate(validateText, insertionPoint, input);
 
             // If the input is invalid, skip it
             if (input == 0)
@@ -2642,10 +2691,19 @@ namespace UnityEngine.UI
             if (displayIndex > 0 && displayIndex < Display.displays.Length)
                 screenHeight = Display.displays[displayIndex].renderingHeight;
 
-            startPosition.y = screenHeight - startPosition.y;
+            // Calculate position of IME Window in screen space.
+            Camera cameraRef;
+            if (m_TextComponent.canvas.renderMode == RenderMode.ScreenSpaceOverlay)
+                cameraRef = null;
+            else
+                cameraRef = m_TextComponent.canvas.worldCamera;
+
+            Vector3 cursorPosition = m_CachedInputRenderer.gameObject.transform.TransformPoint(m_CursorVerts[0].position);
+            Vector2 screenPosition = RectTransformUtility.WorldToScreenPoint(cameraRef, cursorPosition);
+            screenPosition.y = screenHeight - screenPosition.y;
 
             if (input != null)
-                input.compositionCursorPos = startPosition;
+                input.compositionCursorPos = screenPosition;
         }
 
         private void CreateCursorVerts()

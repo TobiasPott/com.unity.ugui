@@ -23,28 +23,36 @@ namespace UnityEngine.UI
             }
 
             Rect current = rectMaskParents[0].canvasRect;
-            float xMin = current.xMin;
-            float xMax = current.xMax;
-            float yMin = current.yMin;
-            float yMax = current.yMax;
-            for (var i = 1; i < rectMaskParents.Count; ++i)
+
+#if UNITY_2020_3_OR_NEWER
+            Vector4 offset = rectMaskParents[0].padding;
+#else
+            Vector4 offset = Vector4.zero;
+#endif
+            float xMin = current.xMin + offset.x;
+            float xMax = current.xMax - offset.z;
+            float yMin = current.yMin + offset.y;
+            float yMax = current.yMax - offset.w;
+
+            var rectMaskParentsCount = rectMaskParents.Count;
+            for (var i = 1; i < rectMaskParentsCount; ++i)
             {
                 current = rectMaskParents[i].canvasRect;
-                if (xMin < current.xMin)
-                    xMin = current.xMin;
-                if (yMin < current.yMin)
-                    yMin = current.yMin;
-                if (xMax > current.xMax)
-                    xMax = current.xMax;
-                if (yMax > current.yMax)
-                    yMax = current.yMax;
+#if UNITY_2020_3_OR_NEWER
+                offset = rectMaskParents[i].padding;
+#endif
+                if (xMin < current.xMin + offset.x)
+                    xMin = current.xMin + offset.x;
+                if (yMin < current.yMin + offset.y)
+                    yMin = current.yMin + offset.y;
+                if (xMax > current.xMax - offset.z)
+                    xMax = current.xMax - offset.z;
+                if (yMax > current.yMax - offset.w)
+                    yMax = current.yMax - offset.w;
             }
 
             validRect = xMax > xMin && yMax > yMin;
-            if (validRect)
-                return new Rect(xMin, yMin, xMax - xMin, yMax - yMin);
-            else
-                return new Rect();
+            return validRect ? new Rect(xMin, yMin, xMax - xMin, yMax - yMin) : new Rect();
         }
     }
 }

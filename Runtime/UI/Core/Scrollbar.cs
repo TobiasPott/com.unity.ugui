@@ -142,7 +142,10 @@ namespace UnityEngine.UI
         // Size of each step.
         float stepSize { get { return (m_NumberOfSteps > 1) ? 1f / (m_NumberOfSteps - 1) : 0.1f; } }
 
+        // field is never assigned warning
+        #pragma warning disable 649
         private DrivenRectTransformTracker m_Tracker;
+        #pragma warning restore 649
         private Coroutine m_PointerDownRepeat;
         private bool isPointerDownAndNotDragging = false;
 
@@ -395,6 +398,11 @@ namespace UnityEngine.UI
         /// </summary>
         public virtual void OnDrag(PointerEventData eventData)
         {
+            // DOC-HINT :::::: multi event system support
+            // check if the event data does belong to the eventsystem associated with the module
+            if (!this.CompareEventSystemID(eventData))
+                return;
+
             if (!MayDrag(eventData))
                 return;
 
@@ -407,30 +415,35 @@ namespace UnityEngine.UI
         /// </summary>
         public override void OnPointerDown(PointerEventData eventData)
         {
+            // DOC-HINT :::::: multi event system support
+            // check if the event data does belong to the eventsystem associated with the module
+            if (!this.CompareEventSystemID(eventData))
+                return;
+
             if (!MayDrag(eventData))
                 return;
 
             base.OnPointerDown(eventData);
             isPointerDownAndNotDragging = true;
-            m_PointerDownRepeat = StartCoroutine(ClickRepeat(eventData));
+            m_PointerDownRepeat = StartCoroutine(ClickRepeat(eventData.pointerPressRaycast.screenPosition, eventData.enterEventCamera));
+        }
+
+        protected IEnumerator ClickRepeat(PointerEventData eventData)
+        {
+            return ClickRepeat(eventData.pointerPressRaycast.screenPosition, eventData.enterEventCamera);
         }
 
         /// <summary>
         /// Coroutine function for handling continual press during Scrollbar.OnPointerDown.
         /// </summary>
-        protected IEnumerator ClickRepeat(PointerEventData eventData)
-        {
-            // DOC-HINT :::::: multi event system support
-            // check if the event data does belong to the eventsystem associated with the module
-            if (!this.CompareEventSystemID(eventData))
-            	yield break;        
-
+        protected IEnumerator ClickRepeat(Vector2 screenPosition, Camera camera)
+        {       
             while (isPointerDownAndNotDragging)
             {
-                if (!RectTransformUtility.RectangleContainsScreenPoint(m_HandleRect, eventData.pointerPressRaycast.screenPosition, eventData.enterEventCamera))
+                if (!RectTransformUtility.RectangleContainsScreenPoint(m_HandleRect, screenPosition, camera))
                 {
                     Vector2 localMousePos;
-                    if (RectTransformUtility.ScreenPointToLocalPointInRectangle(m_HandleRect, eventData.pointerPressRaycast.screenPosition, eventData.pressEventCamera, out localMousePos))
+                    if (RectTransformUtility.ScreenPointToLocalPointInRectangle(m_HandleRect, screenPosition, camera, out localMousePos))
                     {
                         var axisCoordinate = axis == 0 ? localMousePos.x : localMousePos.y;
 
